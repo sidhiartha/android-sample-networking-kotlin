@@ -12,6 +12,7 @@ import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.fuel.httpPost
 import com.github.kittinunf.fuel.httpPut
 import com.github.kittinunf.result.Result
+import com.sidhiartha.libs.utils.GSONManager
 
 /**
  * Created by sidhiartha on 21/01/18.
@@ -48,14 +49,26 @@ abstract class BaseAPI
         return result
     }
 
-    fun execute(handler: (request: Request, response: Response, result: Result<Json, FuelError>) -> Unit)
+    fun <T> execute(kelas: Class<T>, handler: (response: T?, errorMessage: String?) -> Unit)
     {
+        val localHandler = { request: Request, response: Response, result: Result<Json, FuelError> ->
+            val (json, error) = result
+            
+            if (error != null)
+            {
+                handler(null, error.localizedMessage)
+            } else
+            {
+                handler(GSONManager.fromJson(json!!.obj(), kelas), null)
+            }
+        }
+
         when (method)
         {
-            APIMethod.GET -> get(handler)
-            APIMethod.DELETE -> delete(handler)
-            APIMethod.POST -> post(handler)
-            APIMethod.PUT -> put(handler)
+            APIMethod.GET -> get(localHandler)
+            APIMethod.DELETE -> delete(localHandler)
+            APIMethod.POST -> post(localHandler)
+            APIMethod.PUT -> put(localHandler)
             else -> Log.i("TAG", "unsupported $method method")
         }
     }
